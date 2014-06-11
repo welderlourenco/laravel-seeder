@@ -1,10 +1,10 @@
 # Laravel Seeder #
 
-Run one or more seeder files with one and very easy command.
+Run one or more of your seeder files with this very easy command.
 
 # Introduction #
 
-Have you realized the work it takes for you to comment and uncomment your calls inside the DatabaseSeeder.php file everytime you need to run some Seeder? Well, not anymore, with *Laravel Seeder* you can run your Seeder files without touching in the DatabaseSeeder.php file with a simple command, amazing huh?
+Did you notice the work it takes to perform database seeding in Laravel nowadays? Uncomment, comment and uncomment your calls again. Well, not anymore, with *Laravel Seeder* all the `boring` and `unnecessary` work it's done! Here you can perform a database seeding with only one command without having to modify your DatabaseSeeder.php file. Amazing huh?
 
 # Instalation #
 
@@ -29,31 +29,32 @@ Once this operation completes, the final step is to add the ***provider*** in th
 
 ```php
 return array(
+
   // ...
   'providers' => array(
-    // At the end of this array, push Laravel Facebook provider:
+  	// ...
     'WelderLourenco\LaravelSeeder\Providers\LaravelSeederServiceProvider'
   ),
+
 )
 ```
 
 # Usage #
 
-Laravel Seeder adds to your `db` command namespace, two more commands:
+*Laravel Seeder* adds to your `db` command namespace, two more commands:
 
 ```
 php artisan db:all
 ```
+It will search for all Seeder files inside your `/seeds` folder and run them.
 
-This get all your Seeder files existing inside the main `/seeds` folder and run it.
-
-And there's:
 
 ```
-php artisan db:only --files="UsersTableSeeder,RolesTableSeeder"
+php artisan db:only --files="UserTableSeeder"
 ```
+It will run only the files you specify in the `--files` option, please, notice that you can pass
+multiple files separated by colon: `--files="UserTableSeeder, RoleTableSeeder, PermissionTableSeeder"`
 
-This recieves the `--files` option, that is the classes you want to run separated by colon.
 
 # Thanks #
 

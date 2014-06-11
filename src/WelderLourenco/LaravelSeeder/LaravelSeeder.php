@@ -2,22 +2,8 @@
 
 use Illuminate\Filesystem\Filesystem;
 
-class LaravelSeeder 
+class LaravelSeeder
 {
-
-	/**
-	 * The default content of the DatabaseSeeder.php file.
-	 *
-	 * @var  string
-	 */	
-	private $defaultContent = '<?php class DatabaseSeeder extends Seeder { public function run() { Eloquent::unguard(); {calls} } }';
-
-	/**
-	 * The output that will be echo in the console. Stored in a array.
-	 * 
-	 * @var string
-	 */
-	private $output = array();
 
 	/**
 	 * Holds the Filesystem object.
@@ -27,29 +13,38 @@ class LaravelSeeder
 	private $filesystem;
 
 	/**
-	 * The stored DatabaseSeeder.php file content goes here.
+	 * Holds the copied content from DatabaseSeeder.php.
 	 * 
 	 * @var string
 	 */
-	private $databaseSeederContent = '';
+	private $copied;
 
 	/**
-	 * The classes who will be written in the DatabaseSeeder.php file.
+	 * Holds an array of compatible seeder files.
 	 * 
 	 * @var array
 	 */
-	private $classes = array();
+	private $files = [];	
 
-	public function __construct()
-	{
-		$this->setFilesystem();
-	}
+	/**
+	 * The default content of the DatabaseSeeder.php file.
+	 *
+	 * @var  string
+	 */	
+	private $pattern = '<?php class DatabaseSeeder extends Seeder { public function run() { Eloquent::unguard(); {calls} } }';
+
+	/**
+	 * The number of ran seeders.
+	 * 
+	 * @var integer
+	 */
+	private $seeded = 0;
 
 	/**
 	 * Set the filesystem property to the filesystem object.
 	 * 
 	 */
-	public function setFilesystem()
+	private function setFilesystem()
 	{
 		$this->filesystem = new Filesystem;	
 	}
@@ -58,153 +53,214 @@ class LaravelSeeder
 	 * Get the filesystem object instance.
 	 * 
 	 */
-	public function getFilesystem()
+	private function getFilesystem()
 	{
 		return $this->filesystem;
 	}
 
 	/**
-	 * Set a new message to the output array.
-	 *
-	 * @param  string $message
-	 */
-	public function setOutput($message)
-	{
-		$this->output[] = $message;
-	}
-
-	/**
-	 * Get the output array.
+	 * Set the copied content.
 	 * 
-	 * @return array
 	 */
-	public function getOutput()
+	private function setCopied($copied)
 	{
-		return $this->output;
+		$this->copied = $copied;	
 	}
 
 	/**
-	 * Set the classes.
-	 *
-	 * @param  array $classes
+	 * Get the copied content.
+	 * 
 	 */
-	public function setClasses($classes)
+	private function getCopied()
 	{
-		$this->classes = $classes;
+		return $this->copied;
 	}
 
 	/**
-	 * Get the classes.
-	 *
-	 * @return array
+	 * Set the compatible files.
+	 * 
 	 */
-	public function getClasses()
+	private function setFiles($files)
 	{
-		return $this->classes;
+		$this->files = $files;	
 	}
 
 	/**
-	 * Set the content of the current DatabaseSeeder.php file.
-	 *
-	 * @param  array $classes
+	 * Get the compatible files.
+	 * 
 	 */
-	public function setDatabaseSeederContent()
+	private function getFiles()
 	{
-		$this->databaseSeederContent = $this->getFilesystem()->get(app_path() . '/database/seeds/DatabaseSeeder.php');
+		return $this->files;
 	}
 
 	/**
-	 * Get the content of the current DatabaseSeeder.php file.
-	 *
-	 * @return array
+	 * Get the compatible files.
+	 * 
 	 */
-	public function getDatabaseSeederContent()
+	private function getPattern()
 	{
-		return $this->databaseSeederContent;
+		return $this->pattern;
 	}
 
 	/**
-	 * Read the main seeds folder and filter the extended by Seeder files.
-	 *
+	 * Set the seeded count.
+	 * 
+	 */
+	private function setSeeded($seeded)
+	{
+		$this->seeded = $seeded;	
+	}
+
+	/**
+	 * Get the seeded count.
+	 * 
+	 */
+	public function getSeeded()
+	{
+		return $this->seeded;
+	}
+
+	public function __construct()
+	{
+		$this->setFilesystem();
+	}
+
+	/**
+	 * Copy the current DatabaseSeeder.php file and save it to the proper attribute.
+	 * 
+	 */
+	private function copy()
+	{
+		$this->setCopied($this->getFilesystem()->get(app_path() . '/database/seeds/DatabaseSeeder.php'));
+	}
+
+	/**
+	 * Get an array of all the files that is actually compatible with the files we're looking for.
+	 * 
+	 */
+	private function read()
+	{
+		$files = $this->getFilesystem()->allFiles(app_path() . '/database/seeds');
+
+		$filtered = [];
+
+		foreach ($files as $file)
+		{
+			if (strpos(file_get_contents($file->getPathName()), 'extends Seeder') != false)
+			{
+				if ($file->getFileName() != 'DatabaseSeeder.php')
+				{
+					$filtered[] = $file->getFileName();
+				}
+			}
+		}
+
+		$this->setFiles($filtered);
+	}
+
+	/**
+	 * Write the new DatabaseSeeder.php
+	 * 
+	 */
+	private function write()
+	{
+		$content = '';
+
+		foreach ($this->getFiles() as $file)
+		{
+			$content .= '$this->call(\'' . str_replace('.php', '', $file) . '\');';	
+		}
+		
+		$databaseSeeder = str_replace('{calls}', $content, $this->getPattern());
+
+		$this->getFilesystem()->put(app_path() . '/database/seeds/DatabaseSeeder.php', $databaseSeeder);
+	}
+
+	/**
+	 * Restore the DatabaseSeeder.php file to it's previous version.
+	 * 
+	 */
+	public function restore()
+	{
+		$this->getFilesystem()->put(app_path() . '/database/seeds/DatabaseSeeder.php', $this->getCopied());
+	}
+
+	/**
+	 * Copy the current DatabaseSeeder.php file, read the /seeds directory in search for compatible files,
+	 * write the new DatabaseSeeder.php file and return true if it's alright.
+	 * 
+	 * @return boolean
+	 */
+	public function all()
+	{
+		$this->copy();
+
+		$this->read();
+
+		$this->write();
+
+		$this->setSeeded(count($this->getFiles()));
+
+		return true;
+	}
+
+	/**
+	 * Recieves the string list entered by the developer, explode it and only return the ones filtered.
+	 * 
 	 * @param  string $list
 	 * @return array
 	 */
-	public function filteredFiles($list = '')
+	public function getList($list)
 	{
-		$list = array_where(explode(',', $list), function($key, $value)
+		return $list = array_where(explode(',', $list), function($key, $value)
 		{
 			return ($value != '') ?: false;
 		});
-
-		$files = $this->getFilesystem()->allFiles(app_path() . '/database/seeds');
-
-		$filtered = array();
-
-		if (count($list) > 0)
-		{
-			foreach ($list as $class)
-			{
-				foreach ($files as $file)
-				{
-					if (strpos(file_get_contents($file->getPathName()), 'extends Seeder') != false)
-					{
-						if ($file->getFileName() != 'DatabaseSeeder.php')
-						{
-							$className = str_replace('.php', '', $file->getFileName());
-
-							if ($className == $class)
-							{
-								$filtered[] = $className;
-							}
-							else
-							{
-								$this->setOutput('[' . $class . '] doesn\'t exists or isn\'t valid.');
-							}
-						}
-					}
-				}	
-			}
-		}
-		else
-		{
-			foreach ($files as $file)
-			{
-				if (strpos(file_get_contents($file->getPathName()), 'extends Seeder') != false)
-				{
-					if ($file->getFileName() != 'DatabaseSeeder.php')
-					{
-						$className = str_replace('.php', '', $file->getFileName());
-						$filtered[] = $className;
-					}
-				}
-			}		
-		}
-
-		return $filtered;
 	}
 
 	/**
-	 * Write the new database seeder inside the DatabaseSeeder.php file.
+	 * Prepare the stage for the db:only command to work properly.
 	 * 
 	 */
-	public function writeDatabaseSeeder()
+	public function readForOnly($list)
 	{
-		$string = '';
+		$this->read();
 
-		foreach ($this->getClasses() as $class)
+		$files = $this->getFiles();
+
+		$filtered = [];
+
+		foreach ($this->getList($list) as $list)
 		{
-			$string .= '$this->call(\'' . $class . '\');';
+			$list = trim($list);
+			
+			if (in_array($list, $files) || in_array($list . '.php', $files))
+			{
+				$filtered[] = $list;
+			}
 		}
-		
-		$this->getFilesystem()->put(app_path() . '/database/seeds/DatabaseSeeder.php', str_replace('{calls}', $string, $this->defaultContent));
+
+		$this->setFiles($filtered);
 	}
 
 	/**
-	 * Restore the DatabaseSeeder.php old file.
-	 * 	 
+	 * Copy the current DatabaseSeeder.php file, loop through each file and verify it's idententy with ther
+	 * files array, write the new DatabaseSeeder.php file and return true if it's alright.
+	 * 
+	 * @param  string $list
+	 * @return boolean
 	 */
-	public function restoreDatabaseSeederContent()
+	public function only($list)
 	{
-		$this->getFilesystem()->put(app_path() . '/database/seeds/DatabaseSeeder.php',$this->getDatabaseSeederContent());
+		$this->copy();
+
+		$this->readForOnly($list);
+
+		$this->write();
+
+		$this->setSeeded(count($this->getFiles()));
+
+		return true;
 	}
 }

@@ -64,20 +64,18 @@ class LaravelSeederAllCommand extends Command {
 	 */
 	public function fire()
 	{
-		$this->laravelSeeder->setClasses($this->laravelSeeder->filteredFiles());
-		
-		$this->laravelSeeder->setDatabaseSeederContent();
+		$seeder = $this->getLaravelSeeder();
 
-		$this->laravelSeeder->writeDatabaseSeeder();
-
-		foreach ($this->laravelSeeder->getOutput() as $info)
-		{
-			$this->info($info);
-		}
+		$seeder->all();
 
 		$this->call('db:seed');
 
-		$this->laravelSeeder->restoreDatabaseSeederContent();
+		$seeder->restore();
+
+		if ($seeder->getSeeded() == 0)
+		{
+			$this->info('No seeders were ran!');
+		}
 	}
 
 	/**
