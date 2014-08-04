@@ -213,10 +213,17 @@ class LaravelSeeder
 	 */
 	public function getList($list)
 	{
-		return $list = array_where(explode(',', $list), function($key, $value)
+		$filteredList = [];
+
+		foreach (explode(',', $list) as $item)
 		{
-			return ($value != '') ?: false;
-		});
+			if ($item != '')
+			{
+				$filteredList[] = $item;
+			}
+		}
+
+		return $filteredList;
 	}
 
 	/**
