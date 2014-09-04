@@ -4,7 +4,6 @@ use Illuminate\Filesystem\Filesystem;
 
 class LaravelSeeder
 {
-
 	/**
 	 * Holds the Filesystem object.
 	 * 
@@ -31,7 +30,7 @@ class LaravelSeeder
 	 *
 	 * @var  string
 	 */	
-	private $pattern = '<?php class DatabaseSeeder extends Seeder { public function run() { Eloquent::unguard(); {calls} } }';
+	private $pattern = '<?php /** Script generated automatically by Laravel-Seeder. Please, if you are seeing this script you can recover your old DatabaseSeeder.php in DatabaseSeeder.old file. */ class DatabaseSeeder extends Seeder { public function run() { Eloquent::unguard(); {calls} } }';
 
 	/**
 	 * The number of ran seeders.
@@ -127,12 +126,18 @@ class LaravelSeeder
 	}
 
 	/**
+	 * @version  1.0.0
 	 * Copy the current DatabaseSeeder.php file and save it to the proper attribute.
+	 * 
+	 * @version  1.0.1
+	 * Copy the current DatabaseSeeder.php file and save it to a new file called DatabaseSeeder.old
 	 * 
 	 */
 	private function copy()
 	{
 		$this->setCopied($this->getFilesystem()->get(app_path() . '/database/seeds/DatabaseSeeder.php'));
+
+		$this->getFilesystem()->put(app_path() . '/database/seeds/DatabaseSeeder.old', $this->getCopied());
 	}
 
 	/**
@@ -184,6 +189,8 @@ class LaravelSeeder
 	public function restore()
 	{
 		$this->getFilesystem()->put(app_path() . '/database/seeds/DatabaseSeeder.php', $this->getCopied());
+
+		$this->getFilesystem()->delete(app_path() . '/database/seeds/DatabaseSeeder.old');
 	}
 
 	/**
